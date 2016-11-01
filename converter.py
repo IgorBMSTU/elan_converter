@@ -13,7 +13,7 @@ import json
 import hashlib
 import logging
 import conv
-
+import os
 import base64
 import hashlib
 from pydub import AudioSegment
@@ -21,7 +21,7 @@ from collections import defaultdict
 
 SOUND_FILE_PATH = "w1.wav"
 EAF_FILE_PATH = "/home/igor/ELAN_4.9.4/katushka2.eaf"
-SOUND_FOLDER = "sound"
+SOUND_FOLDER = "./sound"
 
 def convert_db_new(sqconn, session, client_id, server_url, locale_id=1):
     link_dict = defaultdict(list)
@@ -43,8 +43,12 @@ def convert_db_new(sqconn, session, client_id, server_url, locale_id=1):
 
     status = session.get(server_url + 'all_data_types')
     field = json.loads(status.text)
-
-    all_data_types = { x["contains"][0]["content"]: (x["client_id"], x["object_id"]) for x in field }
+    all_data_types = {}
+    for type_dict in field:
+        for i in range(len(type_dict["contains"])):
+            type_name = type_dict["contains"][i]["content"]
+            all_data_types[type_name] = (type_dict["client_id"], type_dict["object_id"])
+    #all_data_types = { x["contains"][2]["content"]: (x["client_id"], x["object_id"]) for x in field }
     link_dt_client_id, link_dt_object_id = all_data_types["Link"]
     sound_dt_client_id, sound_dt_object_id = all_data_types["Sound"]
     text_dt_client_id, text_dt_object_id = all_data_types["Text"]
@@ -637,6 +641,8 @@ def convert_one(filename, login, password,
 
 def save_audio(full_audio):
     converter = conv.Elan(EAF_FILE_PATH)
+    if not os.path.exists(SOUND_FOLDER):
+        os.makedirs(SOUND_FOLDER)
     converter.parse()
     final_dicts = converter.proc()
     #print(converter.get_annotation_data_for_tier("text"))
@@ -661,6 +667,6 @@ if __name__ == "__main__":
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)
     logging.basicConfig(format='%(asctime)s\t%(levelname)s\t[%(name)s]\t%(message)s')
-    convert_one(filename="/home/igor/db7.sqlite", login="Test",
+    convert_one(filename="/home/igor/db7.sqlite", login="Test1",
                 password="123456",
                 server_url="http://localhost:6543/")
